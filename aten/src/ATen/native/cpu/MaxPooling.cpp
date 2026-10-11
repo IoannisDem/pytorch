@@ -5,10 +5,19 @@
 #include <ATen/cpu/vec/vec.h>
 #include <ATen/native/MaxPooling.h>
 #include <c10/util/irange.h>
+#include <type_traits>
 
 namespace at::native {
 
 namespace {
+
+template <typename scalar_t>
+bool is_nan(scalar_t v) {
+  if (std::is_integral_v<scalar_t> || std::is_same_v<scalar_t, unsigned char>) {
+    return false;
+  }
+  return std::isnan(v);
+}
 
 template <typename scalar_t>
 inline void max_pool1d_kernel(
@@ -21,7 +30,7 @@ inline void max_pool1d_kernel(
     int64_t ij = p.index(kj, oj);
     for (; oj < oe; ++oj, ij += p.SJ) {
       scalar_t val = ip[ij];
-      bool update_max = std::isnan(val) || op[oj] < val;
+      bool update_max = (val > op[oj]) || is_nan(static_cast<double>(val));
       op[oj] = update_max ? val : op[oj];
     }
   }
@@ -31,7 +40,7 @@ void max_pool1d_impl(
     Tensor& output,
     const Tensor& input,
     const PoolingParams1D& p) {
-  AT_DISPATCH_FLOATING_TYPES_AND2(
+  AT_DISPATCH_ALL_TYPES_AND2(
       ScalarType::BFloat16,
       ScalarType::Half,
       input.scalar_type(),

@@ -487,7 +487,7 @@ class TestPoolingNN(NNTestCase):
                 torch.nn.AdaptiveMaxPool3d,
             )
 
-    @parametrize_test("dtype", [torch.float, torch.double])
+    @parametrize_test("dtype", [torch.float, torch.double, torch.int8, torch.int16, torch.int32, torch.int64])
     def test_max_pool1d(self, dtype):
         device = "cpu"
 
@@ -508,7 +508,7 @@ class TestPoolingNN(NNTestCase):
         ):
             padding = random.sample(range(math.floor(kernel_size / 2) + 1), 1)
             check(
-                torch.randn(size, device=device, dtype=dtype),
+                torch.randn(size, device=device).to(dtype=dtype),
                 kernel_size,
                 stride,
                 padding,
@@ -517,7 +517,7 @@ class TestPoolingNN(NNTestCase):
             )
 
         # Non-contiguous test
-        tensor = torch.randn(5, 151, 33, device=device, dtype=dtype)[::2, ::3, ::2]
+        tensor = torch.randn(5, 151, 33, device=device).to(dtype=dtype)[::2, ::3, ::2]
         check(tensor, 3, 2, 1, 2, ceil_mode=True)
         check(tensor.transpose(1, 2), 3, 2, 1, 2, ceil_mode=True)
 
